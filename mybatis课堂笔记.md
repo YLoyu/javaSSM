@@ -1,0 +1,823 @@
+# mybatis各种配置文件
+
+### mybatis-config.xml配置文件
+
+```java
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<!-- configuration核心配置文件 transactionManager事务管理 -->
+<configuration>
+    <!-- 导入配置文件-->
+    <properties resource="jdbcConfig.properties"></properties>
+    <!-- 设置日志文件-->
+    <settings>
+    	<!--开启全部缓存：默认开启缓存-->
+        <setting name="cacheEnabled" value="true"/>
+    	<!-- 需要导包 -->
+        <setting name="logImpl" value="LOG4j"/>
+    	<!-- 不需要导包也不需要导入依赖 -->
+    	<setting name="logImpl" value="STDOUT_LOGGING"/>
+    	<!-- 驼峰命名 -->
+    	<setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+   <!-- 设置别名 -->
+    <typeAliases>
+        <!--给单个实体类设置别名-->
+        <typeAlias type="com.bdqn.pojo.User" alias="user"></typeAlias>
+        <!--给实体类包下设置别名，实体类名就是别名 -->
+        <package name="com.bdqn.pojo"/>
+    </typeAliases>
+    <!--配置分页拦截器-->
+    <plugins>
+        <plugin interceptor="com.github.pagehelper.PageInterceptor">
+            <property name="helperDialect" value="mysql"/>
+        </plugin>
+    </plugins>
+    
+    <!-- environments配置环境 -->
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${driver}"/>
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+    <!--映射dao包下面的所有类-->
+    <mappers>
+    	<!--包注解-->
+        <package name="com.bdqn.dao"/>
+    </mappers>
+   <!--映射dao包下面的单个文件-->
+    <mappers>
+    	<!--xml注解-->
+    	<mapper resource="org/mybatis/example/BlogMapper.xml"/>
+    </mappers>
+    <!--映射dao包下面的单个文件-->
+    <mappers>
+    	<!--类注解-->
+        <mapper class="com.bdqn.dao.UserMapper"></mapper>
+    </mappers>
+</configuration>
+```
+
+### jdbcConfig.properties配置文件
+
+```java
+driver = com.mysql.jdbc.Driver
+url = jdbc:mysql://localhost:3306/mybatisdb?useSSL=true&amp;useUnicode=true&amp;characterEncoding=UTF-8
+username = root
+password = longyu..
+```
+
+
+
+### dao映射文件
+
+```java
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bdqn.dao.UserMapper">
+    <select id="getUserList" resultType="com.bdqn.pojo.User">
+        select * from user;
+    </select>
+</mapper>
+```
+
+### mybatisUtil工具类
+
+```java
+public class MybatisUtils {
+    private static SqlSessionFactory sqlSessionFactory;
+    static {
+        try {
+            String resource = "mybatis-config.xml";
+            InputStream in = Resources.getResourceAsStream(resource);
+            sqlSessionFactory = new SqlSessionFactoryBuilder().build(in);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static SqlSession getSqlSession(){
+        return sqlSessionFactory.openSession();
+    }
+
+}
+```
+
+### 七步
+
+![image-20201009190206614](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20201009190206614.png)
+
+
+
+# 逆向工程（自动生成Mybatis代码）
+
+### generatorConfig.xml配置文件
+
+```xml
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<!-- Generator 配置文件 -->
+<generatorConfiguration>
+    <context id="mybatisGenerator" targetRuntime="MyBatis3">
+        <commentGenerator>
+            <!-- 是否去除自动生成的注释 true：是 ： false:否 -->
+            <property name="suppressAllComments" value="true" />
+        </commentGenerator>
+        <!--数据库连接的信息：驱动类、连接地址、用户名、密码 -->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/mybatisdb?
+                                serverTimezone=CTT&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;allowMultiQueries=true"
+                        userId="root"
+                        password="longyu..">
+        </jdbcConnection>
+
+        <!-- 默认false，把JDBC DECIMAL 和 NUMERIC 类型解析为 Integer，为 true时把JDBC DECIMAL 和
+            NUMERIC 类型解析为java.math.BigDecimal -->
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false" />
+        </javaTypeResolver>
+
+        <!-- targetProject:生成实体类的位置 -->
+        <javaModelGenerator targetPackage="com.bdqn.pojo"
+                            targetProject=".\src\main\java">
+            <!-- enableSubPackages:是否让schema作为包的后缀 -->
+            <property name="enableSubPackages" value="false" />
+            <!-- 从数据库返回的值被清理前后的空格 -->
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+        <!-- targetProject:mapper映射文件生成的位置 -->
+        <sqlMapGenerator targetPackage="com.bdqn.dao"
+                         targetProject=".\src\main\resources">
+            <!-- enableSubPackages:是否让schema作为包的后缀 -->
+            <property name="enableSubPackages" value="false" />
+        </sqlMapGenerator>
+        <!-- targetPackage：mapper接口生成的位置 -->
+        <javaClientGenerator type="XMLMAPPER"
+                             targetPackage="com.bdqn.dao"
+                             targetProject=".\src\main\java">
+            <!-- enableSubPackages:是否让schema作为包的后缀 -->
+            <property name="enableSubPackages" value="false" />
+        </javaClientGenerator>
+
+        <!-- 指定数据库表 -->
+        <!-- 如果要生成所有表，将tableName的属性修改为“%”即可 -->
+        <!--<table tableName="表名或%"></table>-->
+        <!--<table tableName="orders"></table>
+        <table tableName="orderdetail"></table>
+        <table tableName="user"></table>-->
+
+        <!-- 有些表的字段需要指定java类型
+         <table schema="" tableName="">
+            <columnOverride column="" javaType="" />
+        </table> -->
+
+        <!--数据库表-->
+        <table tableName="user" domainObjectName="User"
+               enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false"
+               enableSelectByExample="false" selectByExampleQueryId="false" >
+            <property name="useActualColumnNames" value="false"/>
+        </table>
+          <!--生成所有表-->
+       <table tableName="%" 
+               enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false"
+               enableSelectByExample="false" selectByExampleQueryId="false" >
+            <property name="useActualColumnNames" value="false"/>
+        </table>
+    </context>
+</generatorConfiguration>
+```
+
+### 自动生成代码插件mybatis-config.xml
+
+```xml
+<!--添加 mybatis-generator-maven-plugin 插件-->
+<build>
+    <plugins>
+        <!-- mybatis-generator自动生成代码插件 -->
+        <plugin>
+            <groupId>org.mybatis.generator</groupId>
+            <artifactId>mybatis-generator-maven-plugin</artifactId>
+            <version>1.3.7</version>
+        </plugin>
+    </plugins>
+</build>
+```
+
+### 添加依赖
+
+```xml
+<dependency>
+    <groupId>org.mybatis.generator</groupId>
+    <artifactId>mybatis-generator-core</artifactId>
+    <version>1.3.7</version>
+</dependency>
+```
+
+### 执行自动生成代码Generator.java
+
+```java
+package com.bdqn.test;
+
+import org.mybatis.generator.api.MyBatisGenerator;
+import org.mybatis.generator.config.Configuration;
+import org.mybatis.generator.config.xml.ConfigurationParser;
+import org.mybatis.generator.internal.DefaultShellCallback;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * MyBatis官方提供的逆向工程Java类
+ */
+public class Generator {
+    public void generator() throws Exception{
+        List<String> warnings = new ArrayList<String>();
+        boolean overwrite = true;
+        /**指向逆向工程的配置文件*/
+        File configFile = new File("src/main/resources/generatorConfig.xml");
+        ConfigurationParser parser = new ConfigurationParser(warnings);
+        Configuration config = parser.parseConfiguration(configFile);
+        DefaultShellCallback callback = new DefaultShellCallback(overwrite);
+        MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config,
+                callback, warnings);
+        myBatisGenerator.generate(null);
+    }
+    public static void main(String[] args) throws Exception {
+        try {
+            Generator generatorSqlmap = new Generator();
+            generatorSqlmap.generator();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+# 执行步骤
+
+![image-20201012084234599](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20201012084234599.png)
+
+![image-20201012084722036](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20201012084722036.png)
+
+
+
+1. InputStream获取核心配置文件
+2. 通过构建者创建工厂
+
+
+
+# 1、MyBatis基础
+
+#### 一、MyBatis框架概述
+
+###### mybatis是一个持久层框架，用java编写的，就是为了简化jdbc操作
+
+1. mybatis是一个优秀的技术java的持久层框架，它内部封装了jdbc,从而简化代码
+2. mybatis通过xml或注解的方式将要执行的各种statement配置起来，并通过java对象和statement中sql的动态参数进行映射生成最终的sql语句，最后由mybatis框架执行sql并将结果映射为java对象并返回。
+
+#### 二、mybatis配置文件的约束
+
+1. ##### Config的约束
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE configuration  
+     PUBLIC "-//mybatis.org//DTD Config 3.0//EN"  
+     "http://mybatis.org/dtd/mybatis-3-config.dtd">
+   ```
+
+2. ##### Mapper的约束
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE mapper  
+     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+   ```
+
+#### 三、mybatis的环境搭建
+
+1. 创建maven工程并导入坐标
+2. 创建实体类和dao接口
+3. 创建Mybatis的主配置文件（SqlMapConfig.xml）
+4. 创建映射配置文件（IUserDao.xml）
+
+注：遵循mabtis规范不用写dao接口的实现类 
+
+- mybatis的映射配置文件位置必须和dao接口的包结构相同，
+- 映射配置文件的mapper标签namespace属性的取值必须是dao接口的全限定类名
+- 映射配置文件的操作配置（select），id属性的取值必须是dao接口的方法名
+
+
+
+# 2、MyBatis连接池
+
+mybatis连接池提供了3种方式的配置：
+
+配置的位置：主配置文件SqlMapConfig.xml中的dataSource标签,type属性就是表示采用哪一种种连接池方式
+
+type属性的取值：
+
+1. POOLED：采用传统的javax.sql.DataSource规范中的连接池，mybatis中有针对规范的实现
+2. UNPOOLED：采用传统的获取连接的方式，虽然也实现javax.sqlDataSource接口，但是并没有使用池的思想
+3. JDNI：采用服务器提供的JNDI技术实现，来获取DataSource对象，不同的服务器能拿到的DataSource是不一样的，如果不是wab或者不是maven的war工程是不能使用的。我们课程中使用的tomact服务器，采用连接池就是dbcp连接池。（扩展）
+
+
+
+# 3、一对一处理
+
+1. 关联-association（一对一使用）
+2. 集合-collection（一对多使用）
+
+```xml
+<resultMap id="studentTeacher" type="student">
+    <result property="id" column="sid"/>
+    <result property="name" column="sname"/>
+    <result property="tid" column="tid"/>
+    <!--配置外键-->
+    <association property="teacher" column="tid" javaType="Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+    </association>
+</resultMap>
+<select id="findAll" resultMap="studentTeacher">
+    select s.id sid,s.name sname,t.name tname,t.id tid
+    from student s,teacher t
+    where t.id = s.tid
+</select>
+```
+
+
+
+# 4、多对一处理
+
+比如：多个学生对一个老师
+
+### 测试环境搭建
+
+1. 导入lombok
+
+2. 新建实体类Teacher,Student
+
+   ```java
+   @Data
+   public class Student implements Serializable {
+       private int id;
+       private String name;
+   
+       // 学生需要关联一个老师
+       private Teacher teacher;
+   }
+   
+   @Data
+   public class Teacher implements Serializable {
+       private int id;
+       private String name;
+   }
+   ```
+
+   
+
+3. 建立Mapperj接口
+
+4. 建立Mapper.xml文件
+
+5. 在核心配置文件中绑定注册我们的Mapper接口或者文件！
+
+6. 测试查询是否成功
+
+### 按照查询嵌套处理（链表查询）
+
+~~~java
+<mapper namespace="com.bdqn.dao.StudentMapper">
+    <select id="getStudent" resultMap="StudentTeacher">
+        select * from student;
+    </select>
+
+    <resultMap id="StudentTeacher" type="Student">
+        <result property="id" column="id"></result>
+        <result property="name" column="name"></result>
+        <!-- 复杂的属性，我们需要单独处理
+            对象：association
+            集合：collection
+        -->
+        <association property="teacher" column="tid" javaType="Teacher" select="getTeacher"/>
+    </resultMap>
+
+    <select id="getTeacher" resultType="Teacher">
+        select * from teacher where id = #{id};
+    </select>
+</mapper>
+~~~
+
+### 按照结果嵌套处理（子查询）
+
+```java
+<!--按照结果嵌套处理-->
+<select id="getStudent2" resultMap="StudentTeacher2">
+    select s.id sid,s.name sname,t.name tname
+    from student s,teacher t
+    where s.tid = t.id;
+</select>
+<resultMap id="StudentTeacher2" type="Student">
+    <result property="id" column="sid"/>
+    <result property="name" column="sname"/>
+    <association property="teacher" javaType="Teacher">
+    <result property="name" column="tname"/>
+    </association>
+</resultMap>
+```
+
+
+
+# 5、一对多处理
+
+比如：一个老师拥有多个学生
+
+实体类
+
+```java
+@Data
+public class Student implements Serializable {
+    private int id;
+    private String name;
+
+    private int tid;
+}
+@Data
+public class Teacher implements Serializable {
+    private int id;
+    private String name;
+
+    // 一个老师拥有多个学生
+    private List<Student> students;
+}
+
+```
+
+### 按照查询嵌套处理（链表查询）
+
+~~~xml
+    <select id="getTeacher" resultMap="TeacherStudent">
+        select s.id sid,s.name sname,t.name tname,t.id tid
+        from student s,
+             teacher t
+        where s.tid = t.id and t.id = #{tid};
+    </select>
+    
+    <resultMap id="TeacherStudent" type="Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+
+        <!--
+            javaType ： 指定属性的类型！
+            集合中的泛型信息，我们使用ofType获取
+         -->
+        <collection property="students" ofType="Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+~~~
+
+### 按照结果嵌套处理（子查询）
+
+```xml
+<!-- 按照子查询 -->
+    <select id="getTeacher2" resultMap="TeacherStudent2">
+        select * from teacher where id = #{tid}
+    </select>
+    
+    <resultMap id="TeacherStudent2" type="Teacher">
+        <collection property="students" javaType="ArrayList" ofType="Student" select="getStudentByTeacherId" column="id"/>
+    </resultMap>
+    
+    <select id="getStudentByTeacherId" resultType="Student">
+        select * from student where tid = #{tid};
+    </select>
+```
+
+### 小结：
+
+1. 关联-association 多对一
+2. 集合-collection 一对多
+3. javaType    ofType  
+   1. JavaType用来指定实体类中属性的类型
+   2. ofType用来指定映射到List或者集合中的pojo类型，泛型中的约束类型
+
+
+
+# 6、动态SQL
+
+**动态SQL就是指根据不同条件生成的不同的SQL语句**
+
+```xml
+if
+choose(when,otherwise)
+trim(where,set)
+foreach
+```
+
+### 搭建环境
+
+创建一个基础工程
+
+1. 导包
+2. 编写配置文件
+3. 编写实体类
+4. 编写实体类对应Mapper接口和Mapper.xml文件
+
+### trim使用
+
+```xml
+SELECT * FROM BLOG
+<trim prefix="WHERE" prefixOverrides="AND">
+	<if test="state != null">
+	  state = #{state}
+	</if> 
+	<if test="title != null">
+	  AND title like #{title}
+	</if>
+	<if test="author != null and author.name != null">
+	  AND author_name like #{author.name}
+	</if>
+</trim>
+```
+
+### choose、when、otherwise
+
+有时候，我们不想使用所有的条件，而只是想从多个条件中选择一个使用。针对这种情况，MyBatis 提供了 choose 元素，它有点像 Java 中的 switch 语句。
+
+```xml
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <choose>
+    <when test="title != null">
+      AND title like #{title}
+    </when>
+    <when test="author != null and author.name != null">
+      AND author_name like #{author.name}
+    </when>
+    <otherwise>
+      AND featured = 1
+    </otherwise>
+  </choose>
+</select>
+```
+
+### set使用
+
+~~~xml
+<update id="updateUser" parameterType="user">
+        update user
+        <set>
+            <if test="username!=null and username!=''">
+                username = #{username},
+            </if>
+            <if test="sex!=null and sex!=''">
+                sex = #{sex},
+            </if>
+            <if test="birthday!=null">
+                birthday = #{birthday},
+            </if>
+            <if test="address!=null and address!=''">
+                address = #{address}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+~~~
+
+注意：宁可多个逗号不可少
+
+### foreach使用
+
+~~~xml
+ <!-- foreach标签-->
+    <select id="findUserByIds" resultType="user" parameterType="list">
+        select * from user
+        <where>
+            <if test="list!=null and list.size()>0">
+                <foreach collection="list" open="id in(" close=")" item="id" separator=",">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+    </select>
+~~~
+
+相当于
+
+```sql
+select * from user where id in (1,3,5,6)
+```
+
+代码解读：
+
+```xml
+foreach:用于便利集合
+collection:参数集合类型
+open:用于代码开始部分
+close:用于代码结束部分
+open和close：相当于拼接字符串
+separator:分隔符
+item：则是你获取每个元素的名字
+#{id}，为参数
+```
+
+### SQL片段
+
+```xml
+    <!--提取sql-->
+    <sql id="if-title-author">
+        <if test="title != null">
+            title = #{title}
+        </if>
+        <if test="author != null">
+            author = #{author}
+        </if>
+    </sql>
+    <select id="queryBlogIf" resultType="blog" parameterType="map">
+        select * from blog
+        <where>
+            /*引用片段*/
+            <include refid="if-title-author"></include>
+        </where>
+    </select>
+
+```
+
+注意：最好基于单表定义SQL片段，不要存在where标签
+
+动态Sql就是在拼接语句，我们只要保持SQL的正确性，按照SQL的格式，去排列组合就可以了
+
+# 7、分页PageHelper插件
+
+1. 导入依赖
+
+   ```xml
+    <dependency>
+        <groupId>com.github.pagehelper</groupId>
+        <artifactId>pagehelper</artifactId>
+        <version>5.2.0</version>
+    </dependency>
+   ```
+
+2. 在核心配置文件中写入配置文件拦截器
+
+   ```xml
+   <plugins>
+       <plugin interceptor="com.github.pagehelper.PageInterceptor">
+       	<property name="helperDialect" value="mysql"/>
+       </plugin>
+   </plugins>
+   ```
+
+3. 获取全部信息的方法
+
+4. 在测试类写分页
+
+   ```java
+   // 1.使用PageHelper类中静态方法，设置当前页和每页显示的记录数
+   PageHelper.startPage(2,4);
+   // 2.执行对应的查询方法，这个方法会自动的添加上分页操作
+   List<User> users = userMapper.getAll();
+   // 3.将获取的分页查询的结果进行封装，封装到PageInfo类中
+   // PageInfo这个类，给我提供了各种获取分页信息的属性
+   PageInfo<User> page = new PageInfo<User>(users);
+   // 4.使用分页封装的对象，获取分页信息
+   System.out.println("总记录数"+page.getTotal());
+   // 5.获取当前分页中的记录，并展示
+   List<User> list = page.getList();
+   for (User user : list) {
+   System.out.println(user);
+   }
+   ```
+
+# 8、缓存
+
+### 简介
+
+1.什么是缓存
+
+- 存在内存中的临时数据
+- 比如：腾讯视频加载视频先放到内存里
+
+2.为什么使用缓存
+
+- 减少和数据库的交互次数，减少系统开销，提高系统效率
+
+3.什么样的数据能使用缓存
+
+- 经常查询并且不经常改变的数据。可以使用缓存
+
+### Mybatis缓存
+
+Mybaits系统中默认定义了两级缓存：一级缓存和二级缓存
+
+- 默认情况下，只有一级缓存开启。（SqlSession级别的缓存，也称为本地缓存）
+- 二级缓存需要手动开启和配置，它是基于namespace级别的缓存
+- 为了提高扩展性，mybatis定义了缓存接口Cache。我们可以通过实现Cache接口来定义二级缓存
+
+### 一级缓存
+
+- 一级缓存也叫本地缓存
+  - 与数据库同一次会话期间查询到的数据会放在本地缓存中。
+  - 以后如果需要获取相同的数据，直接从缓存中拿，没必要再去查询数据库
+
+缓存失效的情况：
+
+1. 查询不同的东西
+
+2. 增删改操作，可能会改变原来的数据，所以必定会刷新缓存！
+
+3. 查询不同的Mapper.xml
+
+4. 手动清理缓存
+
+   ```java
+   sqlSession.clearCache();
+   ```
+
+小结：一级缓存默认是开启的，只在一次SqlSession中有效，也就是拿到链接到关闭链接这个区间段！
+
+### 二级缓存
+
+- 二级缓存也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存
+- 基于namespace级别的缓存，一个名称空间，对应一个二级缓存
+- 工作机制
+  - 一个会话查询一条数据，这个数据就会被放在当前会话的一级缓存中
+  - 如果当前会话关闭了，这个会话对应的一级缓存就没了，但是我们想要的是，会话关闭了，一级缓存中的数据被保存到二级缓存中
+  - 新的会话查询信息，就可以从二级缓存中获取内容
+  - 不同的mapper查出的数据会放在自己对应的缓存（map）中
+
+步骤：
+
+1. 开启全局缓存
+
+   ```xml
+   <settings>
+       <!--开启全部缓存：默认开启缓存-->
+       <setting name="cacheEnabled" value="true"/>
+   </settings>
+   ```
+
+2. 在要使用二级缓存的Mapper中开启
+
+   ```xml
+   <!-- 在当前Mapper.xml中使用二级缓存 -->
+   <cache/>
+   ```
+
+   也可以自定义参数
+
+   ```xml
+   <cache
+     eviction="FIFO"
+     flushInterval="60000"
+     size="512"
+     readOnly="true"/>
+   ```
+
+3. 测试
+
+   1. 问题：我们需要将实体类序列化！否则就会报错
+
+      ```java
+      Caused by:java.io.NoteSerializableException:com.bdqn.pojo.User
+      ```
+
+小结：
+
+- 只要开启了二级缓存，在同一个Mapper下就有效
+- 所有的数据都会先放在一级缓存中
+- 只有当会话提交，或者关闭的时候，才会提交到二级缓存中！
+
+### 缓存原理
+
+缓存顺序
+
+1. 先看二级缓存中有没有
+2. 再看一级缓存中有没有
+3. 查询数据库
+
+
+
