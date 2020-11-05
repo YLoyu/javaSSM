@@ -114,10 +114,6 @@ public class MybatisUtils {
 }
 ```
 
-### 七步
-
-![image-20201009190206614](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20201009190206614.png)
-
 
 
 # 逆向工程（自动生成Mybatis代码）
